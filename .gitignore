@@ -2,3 +2,8 @@ reference/
 results/
 public_data/
 metadata/
+CLAUDE.md
+memory.md
+raw_data/
+singularity/sif
+.DS_Store
