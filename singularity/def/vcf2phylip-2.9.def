@@ -1,0 +1,24 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+%labels
+    Author wel24kif
+    Version 2.9
+    Description vcf2phylip — VCF to PHYLIP/FASTA converter for diploid organisms
+    Source https://github.com/edgardomortiz/vcf2phylip
+
+%post
+    apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+    git clone https://github.com/edgardomortiz/vcf2phylip.git /opt/vcf2phylip
+    chmod +x /opt/vcf2phylip/vcf2phylip.py
+    ln -s /opt/vcf2phylip/vcf2phylip.py /usr/local/bin/vcf2phylip
+
+%test
+    vcf2phylip --help
+
+%help
+    vcf2phylip 2.8 — convert multi-sample VCF to PHYLIP or FASTA alignment.
+    Handles diploid GATK VCFs: hets encoded as IUPAC ambiguity codes by default.
+
+    Usage (FASTA output):
+        vcf2phylip --input samples.vcf --fasta --output-prefix output

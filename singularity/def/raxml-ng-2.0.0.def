@@ -1,0 +1,41 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Author wel24kif
+    Version 2.0.0
+    Description RAxML-NG 2.0.0 — maximum likelihood phylogenetic tree inference
+
+%post
+    apt-get update && apt-get install -y \
+        git \
+        cmake \
+        g++ \
+        make \
+        libgmp3-dev \
+        libhts-dev \
+        libhtscodecs-dev \
+        flex \
+        bison \
+        && rm -rf /var/lib/apt/lists/*
+
+    git clone --recursive --branch 2.0.0 https://github.com/amkozlov/raxml-ng /opt/raxml-ng
+    cd /opt/raxml-ng
+    mkdir build && cd build
+    cmake ..
+    make -j$(nproc)
+    cp /opt/raxml-ng/bin/raxml-ng /usr/local/bin/
+
+%test
+    raxml-ng --version
+
+%help
+    RAxML-NG 2.0.0 — maximum likelihood phylogenetic tree inference.
+    Built as standard PTHREADS binary.
+
+    Basic usage:
+        raxml-ng --all --msa alignment.phy --model GTR+G --bs-trees 100 --threads 8 --prefix output
+
+    Within-participant tree (as used in this pipeline):
+        raxml-ng --all --msa alignment.fasta --model GTR+G --bs-trees 100 \
+                 --threads 8 --seed 12345 --prefix results/06_phylogeny/within_participant
