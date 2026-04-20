@@ -66,12 +66,20 @@ cd scripts/
 
 ### One-time setup
 
-Edit `config.conf` first to confirm all paths match your environment.
+Copy the config template and edit it to match your environment — replace
+`<PROJECT_ROOT>` with the absolute path to your project directory, and set
+`SLURM_PARTITION` to your HPC partition name.
 
 ```bash
+cp config.conf.example config.conf
+# edit config.conf (e.g. with vim, nano, or your editor of choice)
+
 bash install.sh          # pull Singularity images
 bash setup_reference.sh  # index reference, build exclusion BED + interval list
 ```
+
+The local `config.conf` is gitignored so environment-specific paths and
+notification settings stay private.
 
 ### Process the public backbone (once)
 

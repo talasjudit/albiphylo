@@ -7,3 +7,4 @@ memory.md
 raw_data/
 singularity/sif
 .DS_Store
+config.conf

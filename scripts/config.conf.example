@@ -1,0 +1,60 @@
+# config.conf — C. albicans pipeline configuration
+# Sourced by runjob.sh and all SLURM scripts.
+#
+# FIRST-TIME SETUP:
+#   cp config.conf.example config.conf
+#   # then edit config.conf to match your environment — replace <PROJECT_ROOT>
+#   # with the absolute path to your project directory.
+
+# ── Reference ─────────────────────────────────────────────────────────────────
+# SC5314 Assembly 22 (A22-s08-m01-r36) from Candida Genome Database.
+# Downloaded via setup_reference.sh.
+REF=<PROJECT_ROOT>/reference/C_albicans_SC5314_version_A22-s08-m01-r36_chromosomes.fasta
+EXCL_BED=<PROJECT_ROOT>/reference/exclusion_regions.bed
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+SAMPLES_TSV=<PROJECT_ROOT>/metadata/samples.tsv
+PUBLIC_DATA_DIR=<PROJECT_ROOT>/public_data
+
+# ── Results ───────────────────────────────────────────────────────────────────
+RESULTS_DIR=<PROJECT_ROOT>/results
+
+# ── Singularity images ────────────────────────────────────────────────────────
+# Populated by install.sh.
+SIF_DIR=<PROJECT_ROOT>/singularity/sif
+
+# ── Variant calling ───────────────────────────────────────────────────────────
+PLOIDY=2
+INTERVALS=<PROJECT_ROOT>/reference/intervals.list
+
+# ── Site-level hard filters (Adamu Bukari et al. 2025) ────────────────────────
+# IMPORTANT: use float literals (2.0, not 2). GATK VariantFiltration evaluates
+# filter expressions with Apache JEXL, which infers numeric types from the literal:
+#   "FS > 60"   → JEXL treats 60 as Long, then tries to parse the VCF's FS value
+#                  (e.g. 8.451) as Long → NumberFormatException
+#   "FS > 60.0" → JEXL treats 60.0 as Double, compares correctly
+# VCF INFO fields like QD, FS, MQ are encoded as floats, so thresholds must match.
+FILTER_QD=2.0
+FILTER_FS=60.0
+FILTER_MQ=30.0
+FILTER_RPRS=-8.0
+
+# ── Anderson et al. 2023 per-genotype filters (compensates for skipping BQSR) ─
+# Since we skip BQSR, we apply Anderson's stricter per-genotype filtering:
+#   - GQ (Phred) >= 20 = probability >= 0.99 of correct genotype call
+#   - MQRankSum == 0.0 = no mapping quality difference between ref/alt reads
+#   - Max 5% missing genotypes per site (after setting low-GQ calls to no-call)
+# These are applied AFTER the Adamu Bukari site-level hard filters above.
+FILTER_GQ_MIN=20
+FILTER_MQRS_EXACT=0.0
+FILTER_MAX_NOCALL=0.05
+
+# ── SLURM ─────────────────────────────────────────────────────────────────────
+# Note: per-script resource requests (#SBATCH headers) are set in each .slurm file.
+SLURM_PARTITION=<YOUR_SLURM_PARTITION>
+
+# ── Email notifications ───────────────────────────────────────────────────────
+# Set email_notifications=true and fill in email_address to receive SLURM notifications.
+email_notifications=false
+email_address=
+email_events=END,FAIL
