@@ -1,0 +1,4 @@
+sample_id	status	illumina_irida_project	illumina_irida_sample	illumina_r1	illumina_r2	ont_irida_project	ont_irida_sample	ont_reads	assembly
+SAMPLE_001		1234	PID-0001	<PROJECT_ROOT>/raw_data/SAMPLE_001_R1.fastq.gz	<PROJECT_ROOT>/raw_data/SAMPLE_001_R2.fastq.gz	5678	PID-0002	<PROJECT_ROOT>/raw_data/SAMPLE_001_ont.fastq.gz
+SAMPLE_002		1234	PID-0003	<PROJECT_ROOT>/raw_data/SAMPLE_002_R1.fastq.gz	<PROJECT_ROOT>/raw_data/SAMPLE_002_R2.fastq.gz
+SAMPLE_003	rerun	1234	PID-0004	<PROJECT_ROOT>/raw_data/SAMPLE_003_R1.fastq.gz	<PROJECT_ROOT>/raw_data/SAMPLE_003_R2.fastq.gz
