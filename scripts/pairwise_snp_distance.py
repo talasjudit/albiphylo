@@ -26,17 +26,27 @@ import csv
 from itertools import combinations
 
 
-def parse_dosage(gt_str):
-    """Convert GATK genotype string to dosage (0, 1, 2) or None for missing."""
-    if gt_str in ('./.', '.|.', '.', ''):
+def parse_dosage(gt_str, ref, alt):
+    """Nucleotide genotype → ALT dosage (0, 1, 2) or None for missing.
+
+    GATK VariantsToTable with -GF GT emits nucleotide genotypes (e.g. 'C/T'),
+    not numeric ('0/1'). Dosage = count of alleles matching ALT.
+    """
+    if gt_str in ('./.', '.|.', '.', '', 'NA'):
         return None
     alleles = gt_str.replace('|', '/').split('/')
     if len(alleles) != 2:
         return None
-    try:
-        return int(alleles[0]) + int(alleles[1])
-    except ValueError:
+    if any(a == '.' for a in alleles):
         return None
+    # Biallelic restriction upstream means alleles should be REF or ALT only
+    dosage = 0
+    for a in alleles:
+        if a == alt:
+            dosage += 1
+        elif a != ref:
+            return None  # unexpected allele — treat as missing
+    return dosage
 
 
 def main():
@@ -52,6 +62,15 @@ def main():
     with open(gt_file) as f:
         reader = csv.reader(f, delimiter='\t')
         header = next(reader)
+
+    # Locate REF/ALT columns (needed to convert nucleotide GT to dosage)
+    try:
+        ref_idx = header.index('REF')
+        alt_idx = header.index('ALT')
+    except ValueError:
+        print("ERROR: genotype table must have REF and ALT columns "
+              "(run VariantsToTable with -F REF -F ALT)", file=sys.stderr)
+        sys.exit(1)
 
     # Sample columns end with .GT
     sample_cols = [(i, col.replace('.GT', ''))
@@ -80,9 +99,11 @@ def main():
         next(reader)  # skip header
         for row in reader:
             n_variants += 1
+            ref = row[ref_idx]
+            alt = row[alt_idx]
             dosages = []
             for col_idx, _ in sample_cols:
-                dosages.append(parse_dosage(row[col_idx]))
+                dosages.append(parse_dosage(row[col_idx], ref, alt))
 
             for i, j in combinations(range(n_samples), 2):
                 if dosages[i] is not None and dosages[j] is not None:
