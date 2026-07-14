@@ -15,6 +15,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 OUT_DIR="${RESULTS_DIR}/07_raxml"
@@ -46,11 +48,17 @@ CLINICAL_VCF="${OUT_DIR}/clinical_snps.vcf"
 
 echo "=== Subsetting VCF to clinical samples ==="
 
+# GATK SelectVariants has no --sample-file; build repeated -sn flags instead.
+SN_ARGS=()
+while IFS= read -r s; do
+    [[ -n "$s" ]] && SN_ARGS+=(-sn "$s")
+done < "$SAMPLE_FILE"
+
 singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk SelectVariants \
     -R "$REF" \
     -V "$FILTERED_VCF" \
     -O "$CLINICAL_VCF" \
-    --sample-file "$SAMPLE_FILE" \
+    "${SN_ARGS[@]}" \
     --select-type-to-include SNP \
     --restrict-alleles-to BIALLELIC \
     --remove-unused-alternates \
@@ -86,13 +94,13 @@ fi
 # 100 bootstrap replicates (sufficient for small sample sets;
 #   Adamu Bukari used 1000 for publication-quality trees — increase if needed)
 
-echo "=== RAxML-NG: ML tree + 100 bootstrap replicates ==="
+echo "=== RAxML-NG: ML tree + 1000 bootstrap replicates ==="
 
-singularity exec "${SIF_DIR}/raxml-ng-2.0.0.sif" raxml-ng \
+singularity exec "${SIF_DIR}/raxml-ng-2.0.0--h2105a86_1.sif" raxml-ng \
     --all \
     --msa "$ALIGNMENT" \
     --model GTR+G \
-    --bs-trees 100 \
+    --bs-trees 1000 \
     --threads "$SLURM_CPUS_PER_TASK" \
     --seed 12345 \
     --prefix "${OUT_DIR}/clinical"

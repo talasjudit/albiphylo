@@ -16,6 +16,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 GVCF_DIR="${RESULTS_DIR}/03_gvcfs"

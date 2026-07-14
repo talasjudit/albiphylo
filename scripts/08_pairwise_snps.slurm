@@ -18,6 +18,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 OUT_DIR="${RESULTS_DIR}/08_pairwise"
@@ -40,11 +42,17 @@ CLINICAL_VCF="${OUT_DIR}/clinical_snps.vcf"
 
 echo "=== Subsetting VCF to clinical samples ==="
 
+# GATK SelectVariants has no --sample-file; build repeated -sn flags instead.
+SN_ARGS=()
+while IFS= read -r s; do
+    [[ -n "$s" ]] && SN_ARGS+=(-sn "$s")
+done < "$SAMPLE_FILE"
+
 singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk SelectVariants \
     -R "$REF" \
     -V "$FILTERED_VCF" \
     -O "$CLINICAL_VCF" \
-    --sample-file "$SAMPLE_FILE" \
+    "${SN_ARGS[@]}" \
     --select-type-to-include SNP \
     --restrict-alleles-to BIALLELIC \
     --remove-unused-alternates \
@@ -64,7 +72,7 @@ echo "=== Extracting genotype table ==="
 singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk VariantsToTable \
     -R "$REF" \
     -V "$CLINICAL_VCF" \
-    -F CHROM -F POS \
+    -F CHROM -F POS -F REF -F ALT \
     -GF GT \
     -O "$GT_TABLE"
 

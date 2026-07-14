@@ -11,6 +11,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 # Read this array task's sample from the list

@@ -12,6 +12,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 IFS=',' read -r SAMPLE_ID R1 R2 < <(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$SAMPLE_LIST_FILE")

@@ -13,6 +13,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 OUT_DIR="${RESULTS_DIR}/06_phylogeny"

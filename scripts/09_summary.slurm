@@ -18,6 +18,8 @@
 
 # ===== SETUP =====
 
+set -euo pipefail
+
 source "${SCRIPTS_DIR}/config.conf"
 
 OUT_DIR="${RESULTS_DIR}/09_summary"
@@ -44,14 +46,15 @@ echo "=== $N_SAMPLES clinical samples ==="
 
 echo "=== Extracting genotype table (all samples) ==="
 
+# Reuse the biallelic SNPs VCF produced in step 6 (SelectVariants already run).
+SNPS_VCF="${RESULTS_DIR}/06_phylogeny/all_samples_snps.vcf"
 GT_TABLE="${OUT_DIR}/all_samples_genotypes.tsv"
 
 singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk VariantsToTable \
     -R "$REF" \
-    -V "$FILTERED_VCF" \
-    -F CHROM -F POS \
+    -V "$SNPS_VCF" \
+    -F CHROM -F POS -F REF -F ALT \
     -GF GT \
-    --select-type-to-include SNP \
     -O "$GT_TABLE"
 
 echo "=== Assigning clades ==="
@@ -80,15 +83,22 @@ while IFS=$'\t' read -r sid clade rest; do
 done < <(tail -n +2 "${OUT_DIR}/clinical_clade_assignments.tsv")
 
 while read -r sample_id; do
-    # Count variants for this sample (non-missing, non-ref genotypes)
+    # Count variant positions: where at least one allele differs from REF.
+    # Genotype table has nucleotide GTs (e.g. C/T), not numeric (0/1).
     sample_snps=$(awk -F'\t' -v s="${sample_id}.GT" '
-        NR==1 { for(i=1;i<=NF;i++) if($i==s) col=i; next }
-        col && $col != "./." && $col != "0/0" && $col != "0|0" { count++ }
+        NR==1 { for(i=1;i<=NF;i++) { if($i==s) col=i; if($i=="REF") refcol=i } next }
+        col && $col != "./." && $col != "." && $col != "" {
+            ref=$refcol
+            gt=$col
+            gsub(/\|/, "/", gt)
+            split(gt, a, "/")
+            if (a[1] != ref || a[2] != ref) count++
+        }
         END { print count+0 }
     ' "$GT_TABLE")
 
     # Get mean depth from BAM if available
-    bam="${RESULTS_DIR}/02_mapped/${sample_id}.bam"
+    bam="${RESULTS_DIR}/02_mapped/${sample_id}.markdup.bam"
     if [[ -f "$bam" ]]; then
         mean_depth=$(singularity exec "${SIF_DIR}/samtools_1.21.sif" samtools depth -a "$bam" \
             | awk '{sum+=$3; n++} END {if(n>0) printf "%.1f", sum/n; else print "NA"}')
@@ -115,7 +125,7 @@ singularity exec "${SIF_DIR}/vcf2phylip-2.9.sif" python3 \
     "${SCRIPTS_DIR}/generate_itol_annotations.py" \
     "$CLADE_METADATA" \
     "$SAMPLES_TSV" \
-    "${RESULTS_DIR}/06_phylogeny/itol" \
+    "${OUT_DIR}/itol" \
     "${OUT_DIR}/clinical_clade_assignments.tsv"
 
 # =====================================================================
@@ -126,5 +136,5 @@ echo ""
 echo "=== Summary outputs ==="
 echo "  Clade assignments: ${OUT_DIR}/clinical_clade_assignments.tsv"
 echo "  Summary stats:     ${OUT_DIR}/clinical_summary_stats.tsv"
-echo "  iTOL annotations:  ${RESULTS_DIR}/06_phylogeny/itol/ (updated with clade colors)"
+echo "  iTOL annotations:  ${OUT_DIR}/itol/ (upload to iTOL alongside the step 6 tree)"
 echo "=== Done ==="

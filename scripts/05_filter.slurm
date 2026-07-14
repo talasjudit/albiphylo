@@ -16,12 +16,15 @@
 #   Compensates for no BQSR — Anderson used this approach on 431 samples without BQSR.
 #   - Set genotypes with GQ < 20 (Phred; prob < 0.99) to no-call
 #   - Remove sites where MQRankSum ≠ 0.0 (only keep perfect mapping quality balance)
-#   - Remove sites with > 5% missing genotypes (after GQ filtering)
+#   - Remove sites with > 10% missing genotypes (after GQ filtering) — see config.conf
+#     for rationale (scaled up from Anderson's 5% because we have fewer samples)
 #
 # Input:  results/04_joint/all_samples.vcf.gz
 # Output: results/05_filtered/all_samples.filtered.vcf
 
 # ===== SETUP =====
+
+set -euo pipefail
 
 source "${SCRIPTS_DIR}/config.conf"
 
@@ -107,7 +110,7 @@ singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk SelectVariants \
     -R "$REF" \
     -V "$GQ_FLAGGED_VCF" \
     -O "$GQ_NOCALL_VCF" \
-    --set-filtered-genotype-to-no-call
+    --set-filtered-gt-to-nocall
 
 # ----- 2b: Site-level MQRankSum = 0.0 filter -----
 # Anderson required MQRankSum to be exactly 0.0 ("the perfect score") —
@@ -134,8 +137,11 @@ AFTER_MQRS=$(singularity exec "${SIF_DIR}/gatk-4.6.2.0.sif" gatk CountVariants -
 echo "=== After MQRankSum filter: $AFTER_MQRS variants ==="
 
 # ----- 2c: Missing genotype filter -----
-# Remove sites where > 5% of samples have no-call genotypes.
-# This catches sites degraded by the GQ filter above.
+# Remove sites where > 10% of samples have no-call genotypes (FILTER_MAX_NOCALL).
+# Catches sites degraded by the GQ filter above. Anderson used 5% on 431 samples
+# (~21 samples absolute tolerance); 10% on our 190 samples (~19 absolute) roughly
+# matches their absolute tolerance and prevents over-filtering due to divergent
+# outgroup samples (C. africana, clade 13) having more low-GQ calls.
 
 echo "=== Missing genotype filter: max ${FILTER_MAX_NOCALL} no-call fraction ==="
 
