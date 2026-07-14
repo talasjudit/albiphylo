@@ -44,15 +44,17 @@ with a `sample_id`, so removing the row is the cleanest way to exclude.
 
 ### Example
 
-```
-sample_id	status	illumina_irida_project	illumina_irida_sample	illumina_r1	illumina_r2
-NCYC_1470		2570	PID-2045-1470	/path/to/R1.fastq.gz	/path/to/R2.fastq.gz
-NCYC_1471	rerun	3027	PID-2462-1471	/path/to/R1.fastq.gz	/path/to/R2.fastq.gz
+See [`metadata/samples.example.tsv`](metadata/samples.example.tsv) for a template to copy:
+
+```bash
+cp metadata/samples.example.tsv metadata/samples.tsv
+# edit metadata/samples.tsv — add your sample IDs and absolute FASTQ paths
 ```
 
 - Paths must be **absolute**
 - Save as tab-separated (not comma-separated). If editing in Excel, watch for CRLF line
   endings — the pipeline strips `\r` but best to avoid
+- The local `metadata/samples.tsv` is gitignored; only `samples.example.tsv` is tracked
 
 ---
 
@@ -122,13 +124,28 @@ Run once all GVCFs are ready (clinical in `results/03_gvcfs/`, public in `public
 
 ### Tree visualisation
 
+**Global tree (step 6) — for clade placement.** Includes all 190 samples (8 clinical + 182 Ropars backbone).
+
 1. Upload `results/06_phylogeny/global_tree.nwk` to [iTOL](https://itol.embl.de/)
-2. Drag-and-drop the files in `results/06_phylogeny/itol/` onto the tree:
+2. Drag-and-drop the files in `results/09_summary/itol/` onto the tree:
    - `itol_clade_colorstrip.txt` — clade colours
    - `itol_clinical_labels.txt` — bold red labels on clinical isolates
    - `itol_popup_info.txt` — hover popups
 3. Root the tree on the C. africana + clade 13 outgroup (black + magenta in the colorstrip):
    click the branch leading to that cluster → "Re-root the tree here"
+
+**Clinical tree (step 7) — for within-cohort strain comparison.** Only the 8 clinical isolates, with bootstrap support on each branch. Upload `results/07_raxml/clinical.raxml.support` to iTOL separately; no annotation files needed.
+
+### Pairwise heatmap
+
+```bash
+Rscript scripts/plot_pairwise_heatmap.R \
+    results/08_pairwise/clinical_distance_matrix.tsv \
+    results/08_pairwise/clinical_snp_counts.tsv \
+    results/08_pairwise/clinical
+```
+
+Requires R with the `pheatmap` package. Produces clustered PDF heatmaps.
 
 ---
 
@@ -172,7 +189,7 @@ After a full pipeline run, the key client-facing outputs are:
 | Clinical phylogeny | `results/07_raxml/clinical.raxml.support` | Higher-resolution tree with bootstrap support |
 | Pairwise SNP matrix | `results/08_pairwise/clinical_snp_counts.tsv` | Raw SNP differences between every clinical pair |
 | Normalised distances | `results/08_pairwise/clinical_distance_matrix.tsv` | Anderson-style dosage distances |
-| Clade assignments | `results/09_summary/clinical_clade_assignments.tsv` | Per-isolate clade + nearest backbone neighbor + top-3 consensus |
+| Clade assignments | `results/09_summary/clinical_clade_assignments.tsv` | Per-isolate clade (top-5 majority vote over Ropars 2018 backbone), with boundary-sample flags |
 | Summary stats | `results/09_summary/clinical_summary_stats.tsv` | SNP counts, mean depth, assigned clade per isolate |
 
 See `PIPELINE_REFERENCE.md` for detailed methodology and parameter rationale.

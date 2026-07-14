@@ -37,6 +37,66 @@ detect_clinical_samples() {
     echo "$output"
 }
 
+# ── Hybrid samples (clinical rows with Illumina + ONT reads) ──────────────────
+# Output per line: sample_id,ont_reads,R1_path,R2_path
+# Only includes rows where illumina_r1, illumina_r2, AND ont_reads are populated.
+# Used by hybrid_assembly.slurm (Flye + Medaka + Polypolish).
+
+detect_hybrid_samples() {
+    local tsv="$1"
+
+    if [[ ! -f "$tsv" ]]; then
+        echo "ERROR: samples.tsv not found: $tsv" >&2
+        return 1
+    fi
+
+    # Columns: 1=sample_id 5=illumina_r1 6=illumina_r2 9=ont_reads
+    local output
+    output=$(tr -d '\r' < "$tsv" | awk -F'\t' '
+        NR == 1 { next }
+        $1 == "" { next }
+        $5 == "" || $6 == "" || $9 == "" { next }
+        { print $1 "," $9 "," $5 "," $6 }
+    ')
+
+    if [[ -z "$output" ]]; then
+        echo "ERROR: No samples with Illumina + ONT reads found in $tsv" >&2
+        return 1
+    fi
+
+    echo "$output"
+}
+
+# ── Hybrid samples (clinical rows with Illumina + ONT reads) ──────────────────
+# Output per line: sample_id,ont_reads,R1_path,R2_path
+# Only includes rows where illumina_r1, illumina_r2, AND ont_reads are populated.
+# Used by hybrid_assembly.slurm (Flye + Medaka + Polypolish).
+
+detect_hybrid_samples() {
+    local tsv="$1"
+
+    if [[ ! -f "$tsv" ]]; then
+        echo "ERROR: samples.tsv not found: $tsv" >&2
+        return 1
+    fi
+
+    # Columns: 1=sample_id 5=illumina_r1 6=illumina_r2 9=ont_reads
+    local output
+    output=$(tr -d '\r' < "$tsv" | awk -F'\t' '
+        NR == 1 { next }
+        $1 == "" { next }
+        $5 == "" || $6 == "" || $9 == "" { next }
+        { print $1 "," $9 "," $5 "," $6 }
+    ')
+
+    if [[ -z "$output" ]]; then
+        echo "ERROR: No samples with Illumina + ONT reads found in $tsv" >&2
+        return 1
+    fi
+
+    echo "$output"
+}
+
 # ── Public samples (Ropars et al., public_data/) ──────────────────────────────
 # Output per line: sample_id,R1_path,R2_path
 # Expects paired files named SRR*_1.fastq.gz / SRR*_2.fastq.gz

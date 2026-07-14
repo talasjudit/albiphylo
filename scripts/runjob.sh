@@ -75,6 +75,7 @@ array_scripts=(
     "01_trim.slurm"
     "02_map.slurm"
     "03_haplotypecaller.slurm"
+    "hybrid_assembly.slurm"
 )
 
 needs_array=false
@@ -92,14 +93,19 @@ if [[ "$needs_array" == true ]]; then
 
     echo "Building sample list (cohort: $cohort)..."
 
-    case "$cohort" in
-        clinical)
-            detect_clinical_samples "$SAMPLES_TSV" > "$sample_list_file"
-            ;;
-        public)
-            detect_public_samples "$PUBLIC_DATA_DIR" > "$sample_list_file"
-            ;;
-    esac
+    # Hybrid assembly needs sample_id,ONT,R1,R2 — all others need sample_id,R1,R2
+    if [[ "$script_name" == "hybrid_assembly.slurm" ]]; then
+        detect_hybrid_samples "$SAMPLES_TSV" > "$sample_list_file"
+    else
+        case "$cohort" in
+            clinical)
+                detect_clinical_samples "$SAMPLES_TSV" > "$sample_list_file"
+                ;;
+            public)
+                detect_public_samples "$PUBLIC_DATA_DIR" > "$sample_list_file"
+                ;;
+        esac
+    fi
 
     # For step 3: remove samples that already have a GVCF (unless status=rerun)
     if [[ "$script_name" == "03_haplotypecaller.slurm" && "$cohort" == "clinical" ]]; then

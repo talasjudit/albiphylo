@@ -3,29 +3,31 @@
 #
 # FIRST-TIME SETUP:
 #   cp config.conf.example config.conf
-#   # then edit config.conf to match your environment — replace <PROJECT_ROOT>
-#   # with the absolute path to your project directory.
+#   # then set PROJECT_DIR to the absolute path of your project directory.
+
+# ── Project root ──────────────────────────────────────────────────────────────
+PROJECT_DIR=<PROJECT_ROOT>
 
 # ── Reference ─────────────────────────────────────────────────────────────────
 # SC5314 Assembly 22 (A22-s08-m01-r36) from Candida Genome Database.
 # Downloaded via setup_reference.sh.
-REF=<PROJECT_ROOT>/reference/C_albicans_SC5314_version_A22-s08-m01-r36_chromosomes.fasta
-EXCL_BED=<PROJECT_ROOT>/reference/exclusion_regions.bed
+REF=${PROJECT_DIR}/reference/C_albicans_SC5314_version_A22-s08-m01-r36_chromosomes.fasta
+EXCL_BED=${PROJECT_DIR}/reference/exclusion_regions.bed
 
 # ── Data ──────────────────────────────────────────────────────────────────────
-SAMPLES_TSV=<PROJECT_ROOT>/metadata/samples.tsv
-PUBLIC_DATA_DIR=<PROJECT_ROOT>/public_data
+SAMPLES_TSV=${PROJECT_DIR}/metadata/samples.tsv
+PUBLIC_DATA_DIR=${PROJECT_DIR}/public_data
 
 # ── Results ───────────────────────────────────────────────────────────────────
-RESULTS_DIR=<PROJECT_ROOT>/results
+RESULTS_DIR=${PROJECT_DIR}/results
 
 # ── Singularity images ────────────────────────────────────────────────────────
 # Populated by install.sh.
-SIF_DIR=<PROJECT_ROOT>/singularity/sif
+SIF_DIR=${PROJECT_DIR}/singularity/sif
 
 # ── Variant calling ───────────────────────────────────────────────────────────
 PLOIDY=2
-INTERVALS=<PROJECT_ROOT>/reference/intervals.list
+INTERVALS=${PROJECT_DIR}/reference/intervals.list
 
 # ── Site-level hard filters (Adamu Bukari et al. 2025) ────────────────────────
 # IMPORTANT: use float literals (2.0, not 2). GATK VariantFiltration evaluates
@@ -43,11 +45,17 @@ FILTER_RPRS=-8.0
 # Since we skip BQSR, we apply Anderson's stricter per-genotype filtering:
 #   - GQ (Phred) >= 20 = probability >= 0.99 of correct genotype call
 #   - MQRankSum == 0.0 = no mapping quality difference between ref/alt reads
-#   - Max 5% missing genotypes per site (after setting low-GQ calls to no-call)
+#   - Max 10% missing genotypes per site (after setting low-GQ calls to no-call)
+#
+# NOTE on missing genotype threshold: Anderson used 5% on 431 samples.
+# The threshold should scale with cohort size — tune based on how many divergent
+# samples (e.g. outgroups that map less cleanly to the reference) you have.
+# For ~190 samples with C. albicans backbone + C. africana outgroup, 10% works.
+#
 # These are applied AFTER the Adamu Bukari site-level hard filters above.
 FILTER_GQ_MIN=20
 FILTER_MQRS_EXACT=0.0
-FILTER_MAX_NOCALL=0.05
+FILTER_MAX_NOCALL=0.10
 
 # ── SLURM ─────────────────────────────────────────────────────────────────────
 # Note: per-script resource requests (#SBATCH headers) are set in each .slurm file.
